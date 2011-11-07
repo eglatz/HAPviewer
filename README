@@ -1,0 +1,61 @@
+Introduction
+============
+HAPviewer is a host application profile graphlet viewer. It visualizes
+network data through graphs on a per-host level in such a way that
+running applications are apparent. Moreover, it summarizes groups of 
+flows in an intelligent way providing aggregates of per-role traffic.
+Supported roles are: client, server, multi-clients and variations of
+peer-to-peer.
+
+Licensing
+=========
+Distributed under the GNU General Public License version 2 (GPL.txt)
+or the modified BSD (BSD.txt) license unless specified otherwise.
+
+Installation
+============
+
+Basic Requirements
+ - Boost regex, confirmed to work with version 1.40+
+ - CMake, version 2.6 or later
+ - g++, confirmed to work with version 4.2.4+
+ - GNU/Linux, FreeBSD or OpenBSD
+
+Additional GUI requirements
+ - Boost graph, confirmed to work with version 1.40+
+ - libgraphviz (libgvc), confirmed to work with version 2.16+
+ - libgtkmm-2.4 (incl. freetype), confirmed to work with version
+   2.12.5+
+
+Additional requirements for libtest, showcflow, mkcflows, mktestcflows
+ - Boost program_options, iostreams, filesystem, confirmed to work
+   with version 1.40+
+
+Additional requirements for cflow support
+ - Boost iostreams, filesystem (Cflow support), confirmed to work with
+   version 1.40+
+
+Additional requirements for IPFIX support
+ - libfixbuf (IPFIX support), confirmed to work with version 0.9.0
+ - glib, confirmed to work with version 2.16.6 and later
+ 
+Additional requirements for IPFIX support
+ - libpcap++ (pcap support), confirmed to work with svn revision 140
+
+Additional requirements to build the documentation
+ - Doxygen
+
+Configuring the project
+=======================
+mkdir build_hapviewer
+cd build_hapviewer
+cmake ../hapviewer
+ccmake . #configure HAPviewer according to your needs
+
+Make targets
+============
+make # build all the enabled targets (hapviz, haplibtest, HAPviewer, etc.)
+make test # run the integrated tests (if enabled in ccmake)
+make clean # clean up the project
+make doc # build the doxygen documentation (if enable in ccmake)
+make install # installs the built targets
