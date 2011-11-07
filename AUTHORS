@@ -1,0 +1,13 @@
+Author:
+ - Eduard Glatz (eglatz@tik.ee.ethz.ch) 
+
+Contributors:
+ - Sebastian Hügli (sebastianhuegli@gmail.com)
+ - Reto Schneider (reto reto-schneider.ch)
+
+3rd party code:
+ - nfdump:  Peter Haag
+ - IPFIX:   Brian Trammell
+ - HashMap: Bernhard Tellenbach (bernhard.tellenbach@gmail.com) 	
+ - lookup3: Arno Wagner
+ - CUTE:    Peter Sommerlad

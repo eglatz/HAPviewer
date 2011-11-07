@@ -1,0 +1,17 @@
+@GIMPORT_WARNING@
+
+#ifndef GIMPORT_CONFIG_H
+#define GIMPORT_CONFIG_H
+
+#include "gfilter.h"
+@GIMPORT_INCLUDES@
+
+std::vector<GFilter *> CImport::inputfilters;
+
+unsigned int CImport::initInputfilters()
+{
+@GIMPORT_PUSHBACK@
+	return inputfilters.size();
+}
+
+#endif /* GIMPORT_CONFIG_H */

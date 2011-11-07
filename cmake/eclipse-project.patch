@@ -1,0 +1,10 @@
+--- .project	2011-03-07 01:12:16.368392577 +0100
++++ .project-old	2011-03-07 01:12:10.127144115 +0100
+@@ -103,6 +103,7 @@
+ 		</buildCommand>
+ 	</buildSpec>
+ 	<natures>
++		<nature>ch.hsr.ifs.cute.ui.cutenature</nature>
+ 		<nature>org.eclipse.cdt.core.ccnature</nature>
+ 		<nature>org.eclipse.cdt.make.core.makeNature</nature>
+ 		<nature>org.eclipse.cdt.make.core.ScannerConfigNature</nature>

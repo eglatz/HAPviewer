@@ -1,0 +1,339 @@
+cmake_minimum_required (VERSION 2.6)
+
+option(HAPVIEWER_DEBUG "Build a debug release" ON)
+option(HAPVIEWER_DEBUG_EXIT_ON_WARNING "Stop building if compiler complains about something" OFF)
+option(HAPVIEWER_DEBUG_PRINT_ALL_WARNINGS "Print all compiler warnings" ON)
+
+option(HAPVIEWER_GUI "Build the HAPviewer GUI" ON)
+option(HAPVIEWER_SHOWCFLOW "Build the show_cflows tool" ON)
+option(HAPVIEWER_MKCFLOWS "Build the mk_cflows tool" ON)
+option(HAPVIEWER_MKTESTCFLOWS "Build the mk_test_cflows tool" ON)
+option(HAPVIEWER_LIBRARY_LIBTEST "Build the haplibtest" ON)
+option(HAPVIEWER_LIBRARY "Build the library version of HAPviewer" ON)
+option(HAPVIEWER_LIBRARY_SHARED "Build a shared of the static version of the library" ON)
+
+option(HAPVIEWER_ENABLE_PCAP "Include support for pcap" ON)
+option(HAPVIEWER_ENABLE_IPFIX "Include support for ipfix" ON)
+option(HAPVIEWER_ENABLE_NFDUMP "Include support for nfdump" ON)
+option(HAPVIEWER_ENABLE_CFLOW "Include support for cflow" ON)
+option(HAPVIEWER_ENABLE_ARGUS "Include support for argus" ON)
+
+if(HAPVIEWER_DEBUG)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g3 -ggdb -funroll-all-loops -ffast-math -Wno-deprecated -rdynamic")
+	set(CMAKE_VERBOSE_MAKEFILE true)
+else()
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O6 -s -ffast-math -funroll-all-loops -fomit-frame-pointer -Wno-deprecated -DNDEBUG" )
+endif()
+
+if(HAPVIEWER_DEBUG_EXIT_ON_WARNING)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+endif()
+
+if(HAPVIEWER_DEBUG_PRINT_ALL_WARNINGS)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+endif()
+
+
+set(HAPVIEWER_CORE_CPPFILES
+	IPv6_addr.cpp
+	gfilter.cpp
+	cflow.cpp
+	ggraph.cpp
+	ghpgdata.cpp
+	gimport.cpp
+	ginterface.cpp
+	grole.cpp
+	gutil.cpp
+	HashMapE.cpp
+	HashMap.cpp
+	heapsort.cpp
+	lookup3.cpp
+	gsummarynodeinfo.cpp
+)
+set(HAPVIEWER_CORE_CPPHEADERS
+	ginterface.h
+	ghpgdata.h
+	grole.h
+	hpg.h
+	gutil.h
+	IPv6_addr.h
+	gimport.h
+	cflow.h
+	HashMapE.h
+	global.h
+	ggraph.h
+	gfilter.h
+	gsummarynodeinfo.h
+	lookup3.h
+	HashMap.h
+)
+include_directories(
+	"${PROJECT_BINARY_DIR}/configured_files/"
+	"${PROJECT_SOURCE_DIR}/src/"
+)
+
+set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS_INIT} "-Wl,-lstdc++")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lc")
+
+find_package(Boost 1.40 REQUIRED COMPONENTS regex)
+set(HAPVIEWER_CORELIBS ${HAPVIEWER_CORELIBS} ${Boost_LIBRARIES})
+
+include_directories(
+	${Boost_INCLUDE_DIRS}
+)
+
+if(HAPVIEWER_ENABLE_PCAP)
+	if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+		set(HAPVIEWER_CORE_CPPFILES ${HAPVIEWER_CORE_CPPFILES} gfilter_pcap.cpp)
+		set(GIMPORT_PUSHBACK "${GIMPORT_PUSHBACK}	inputfilters.push_back(new GFilter_pcap);\n")
+		set(GIMPORT_INCLUDES "${GIMPORT_INCLUDES}#include \"gfilter_pcap.h\"\n")
+		find_package(PCAP++ REQUIRED)
+		find_package(PCAP REQUIRED)
+		include_directories(
+			${PCAP++_INCLUDE_DIRS}
+			${PCAP_INCLUDE_DIRS}
+		)
+		set(HAPVIEWER_CORELIBS ${HAPVIEWER_CORELIBS} ${PCAP_LIBRARIES} ${PCAP++_LIBRARIES})
+	else()
+		message(FATAL_ERROR "There is still some work left to make pcap available for anything non-Linux")
+	endif()
+endif()
+
+if(HAPVIEWER_ENABLE_CFLOW)
+	find_package(Boost 1.40 REQUIRED COMPONENTS filesystem iostreams)
+	set(HAPVIEWER_CORELIBS ${HAPVIEWER_CORELIBS} ${Boost_LIBRARIES})
+	set(GIMPORT_PUSHBACK "${GIMPORT_PUSHBACK}	inputfilters.push_back(new GFilter_cflow4);\n")
+	set(GIMPORT_PUSHBACK "${GIMPORT_PUSHBACK}	inputfilters.push_back(new GFilter_cflow6);\n")
+	set(GIMPORT_INCLUDES "${GIMPORT_INCLUDES}#include \"gfilter_cflow.h\"\n")
+	set(HAPVIEWER_CORE_CPPFILES ${HAPVIEWER_CORE_CPPFILES} gfilter_cflow.cpp)
+endif()
+
+if(HAPVIEWER_ENABLE_ARGUS)
+	set(GIMPORT_PUSHBACK "${GIMPORT_PUSHBACK}	inputfilters.push_back(new GFilter_argus);\n")
+	set(GIMPORT_INCLUDES "${GIMPORT_INCLUDES}#include \"gfilter_argus.h\"\n")
+	set(HAPVIEWER_CORE_CPPFILES ${HAPVIEWER_CORE_CPPFILES} gfilter_argus.cpp)
+endif()
+
+if(HAPVIEWER_ENABLE_IPFIX)
+	set(GIMPORT_PUSHBACK "${GIMPORT_PUSHBACK}	inputfilters.push_back(new GFilter_ipfix);\n")
+	set(GIMPORT_INCLUDES "${GIMPORT_INCLUDES}#include \"gfilter_ipfix.h\"\n")
+	find_package(GTK2)
+	if(GTK2_GLIB_INCLUDE_DIR AND GTK2_GLIBCONFIG_INCLUDE_DIR AND GTK2_GLIB_LIBRARY)
+		set(HAPVIEWER_CORE_CPPFILES ${HAPVIEWER_CORE_CPPFILES} gfilter_ipfix_vx5ipfix_bi.cpp gfilter_ipfix.cpp)
+		find_package(FIXBUF REQUIRED)
+		include_directories(
+			${FIXBUF_INCLUDE_DIRS}
+			${GTK2_GLIB_INCLUDE_DIR}
+			${GTK2_GLIBCONFIG_INCLUDE_DIR}
+		)
+		set(HAPVIEWER_CORELIBS ${HAPVIEWER_CORELIBS} ${FIXBUF_LIBRARIES} ${GTK2_GLIB_LIBRARIES})
+	elseif()
+		message(FATAL_ERROR "Could not find glib! (IPFIX depends on the glib library)")
+	endif()
+endif()
+
+if(HAPVIEWER_ENABLE_NFDUMP)
+	set(GIMPORT_PUSHBACK "${GIMPORT_PUSHBACK}	inputfilters.push_back(new GFilter_nfdump);\n")
+	set(GIMPORT_INCLUDES "${GIMPORT_INCLUDES}#include \"gfilter_nfdump.h\"\n")
+	set(HAPVIEWER_CORE_CPPFILES ${HAPVIEWER_CORE_CPPFILES} gfilter_nfdump.cpp gfilter_nfdump_gnfdump.cpp)
+endif()
+
+#this generates gimport_config.h which adds all enabled input filters to the project
+set(GIMPORT_WARNING "/**\n  * WARNING: Do not edit this file directly, change gimport_config.h.in instead!\n  */\n")
+configure_file (
+	"${PROJECT_SOURCE_DIR}/src/gimport_config.h.in"
+	"${PROJECT_BINARY_DIR}/configured_files/gimport_config.h"
+)
+
+if(HAPVIEWER_LIBRARY_LIBTEST)
+	if(HAPVIEWER_LIBRARY)
+		find_package(Threads REQUIRED)
+		find_package(Boost 1.40 REQUIRED COMPONENTS program_options)
+		set(LIBTEST_LIBS ${Boost_LIBRARIES})
+
+		add_executable(haplibtest
+			haplibtest.cpp
+		)
+		target_link_libraries(haplibtest
+			hapviz
+			${LIBTEST_LIBS}
+			${CMAKE_THREAD_LIBS_INIT}
+		)
+		install (TARGETS haplibtest DESTINATION bin)
+	else()
+		message(FATAL_ERROR "You have to enable HAPVIEWER_LIBRARY to build the tool libtest!")
+	endif()
+endif()
+
+if(HAPVIEWER_SHOWCFLOW)
+	if(HAPVIEWER_LIBRARY)
+		find_package(Threads REQUIRED)
+		find_package(Boost 1.40 REQUIRED COMPONENTS program_options filesystem iostreams)
+		set(SHOWCFLOW_LIBS ${Boost_LIBRARIES})
+
+		include_directories(
+			${Boost_INCLUDE_DIRS}
+		)
+
+		add_executable(show_cflows
+			show_cflows.cpp
+			gfilter_cflow.cpp
+		)
+		target_link_libraries(show_cflows
+			hapviz
+			${SHOWCFLOW_LIBS}
+			${CMAKE_THREAD_LIBS_INIT}
+		)
+		install (TARGETS show_cflows DESTINATION bin)
+	else()
+		message(FATAL_ERROR "You have to enable HAPVIEWER_LIBRARY to build the tool showcflow!")
+	endif()
+endif()
+
+if(HAPVIEWER_MKCFLOWS)
+	if(HAPVIEWER_LIBRARY)
+		find_package(Threads REQUIRED)
+		find_package(Boost 1.40 REQUIRED COMPONENTS program_options filesystem iostreams)
+		set(MKCFLOWS_LIBS ${Boost_LIBRARIES})
+
+		include_directories(
+			${Boost_INCLUDE_DIRS}
+		)
+
+		add_executable(mk_cflows
+			mk_cflows.cpp
+			gfilter_cflow.cpp
+		)
+		target_link_libraries(mk_cflows
+			hapviz
+			${MKCFLOWS_LIBS}
+			${CMAKE_THREAD_LIBS_INIT}
+		)
+		install (TARGETS mk_cflows DESTINATION bin)
+	else()
+		message(FATAL_ERROR "You have to enable HAPVIEWER_LIBRARY to build the tool mkcflows!")
+	endif()
+endif()
+
+if(HAPVIEWER_MKTESTCFLOWS)
+	if(HAPVIEWER_LIBRARY)
+		find_package(Threads REQUIRED)
+		find_package(Boost 1.40 REQUIRED COMPONENTS program_options)
+		set(MKTESTCFLOWS_LIBS ${Boost_LIBRARIES})
+
+		include_directories(
+			${Boost_INCLUDE_DIRS}
+		)
+
+		add_executable(mk_test_cflows
+			mk_test_cflows.cpp
+			gfilter_cflow.cpp
+		)
+		target_link_libraries(mk_test_cflows
+			hapviz
+			${MKTESTCFLOWS_LIBS}
+			${CMAKE_THREAD_LIBS_INIT}
+		)
+
+		install (TARGETS mk_test_cflows DESTINATION bin)
+	else()
+		message(FATAL_ERROR "You have to enable HAPVIEWER_LIBRARY to build the tool mktestcflows!")
+	endif()
+endif()
+
+if(HAPVIEWER_LIBRARY)
+	#this needs still some work - we have to name/versioning/symlink the library correctly
+	if(HAPVIEWER_LIBRARY_SHARED)
+		add_library(hapviz SHARED ${HAPVIEWER_CORE_CPPFILES})
+	else()
+		add_library(hapviz STATIC ${HAPVIEWER_CORE_CPPFILES})
+	endif()
+
+	set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--no-undefined") #finds errors - lets disable it for now
+
+	target_link_libraries(hapviz
+		${HAPVIEWER_CORELIBS}
+	)
+
+	set_property(TARGET hapviz PROPERTY LINK_INTERFACE_LIBRARIES "") # avoids the propagation of the hapviz depencies to programms which link to it
+
+	install (TARGETS hapviz DESTINATION lib)
+	install (FILES ${HAPVIEWER_CORE_CPPHEADERS} DESTINATION include/hapviz/)
+
+
+
+endif()
+
+if(HAPVIEWER_GUI)
+	set(HAPVIEWER_GUI_CPPFILES "${HAPVIEWER_CORE_CPPFILES}" glistview_cflow.cpp glistview_hpg.cpp gmodel.cpp gview.cpp HAPviewer.cpp HAPGraphlet.cpp)
+
+	add_executable(HAPviewer ${HAPVIEWER_GUI_CPPFILES})
+	set_target_properties(HAPviewer PROPERTIES COMPILE_FLAGS "-DGUI")
+
+	find_package(GTK2 COMPONENTS REQUIRED gtk gtkmm)
+	find_package(Freetype REQUIRED)
+	find_package(GVC REQUIRED)
+	find_package(Threads REQUIRED)
+
+	#trying to work around known problems by detecting the Linux distribution
+	exec_program("/usr/bin/lsb_release -a" OUTPUT_VARIABLE LSB_RELEASE)
+	exec_program("cat /etc/debian_version" OUTPUT_VARIABLE DEBIAN_RELEASE)
+
+	if(${LSB_RELEASE} MATCHES "Ubuntu 8.04" OR ${DEBIAN_RELEASE} MATCHES "5.0") # if we are on Ubuntu 8.04/Debian Lenny, include this workaround (this is not future-proof!)
+		find_library(GTK_gthread_LIBRARY #Quick fix for Ubuntu 8.04/Debian Lenny.
+			NAMES gthread-2.0
+			PATHS	/usr/local/lib
+				/usr/lib
+		)
+	endif()
+
+	# using our own Find* if current CMake version is below 2.8.3
+	if(${CMAKE_MAJOR_VERSION} EQUAL 2 AND ${CMAKE_MINOR_VERSION} EQUAL 8 AND ${CMAKE_PATCH_VERSION} LESS 3)
+		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/modules/v2.8.2/")
+		find_package(PANGOMM REQUIRED)
+		if(${LSB_RELEASE} MATCHES "Ubuntu 10.10") # if we are on Ubuntu 10.10, include this workaround (this is not future-proof!)
+			find_package(GTK-PIXBUF REQUIRED)
+		endif()
+	endif()
+
+	find_package(Boost 1.40 REQUIRED COMPONENTS graph)
+	set(HAPVIEWER_GUILIBS ${HAPVIEWER_CORELIBS} ${Boost_LIBRARIES})
+	
+	include_directories(
+		${Boost_INCLUDE_DIRS}
+	)
+
+	target_link_libraries(HAPviewer
+		${HAPVIEWER_CORELIBS}
+		${HAPVIEWER_GUILIBS}
+		${GTK2_LIBRARIES}
+		${FREETYPE_LIBRARIES}
+		${GVC_LIBRARIES}
+		${CMAKE_THREAD_LIBS_INIT}
+		${PANGOMM_LIBRARIES}
+		${GTK-PIXBUF_LIBRARIES}
+		${GTK_gthread_LIBRARY}
+	)
+
+	include_directories(
+		${FREETYPE_INCLUDE_DIRS}
+		${GVC_INCLUDE_DIRS}
+		${GTK2_INCLUDE_DIRS}
+		${PANGOMM_INCLUDE_DIRS}
+		${GTK-PIXBUF_INCLUDE_DIRS}
+		"/usr/lib/cairomm-1.0/include/" #This is a *horrible* workaround, but needed. Cmake does not yet have support for it
+		"/usr/local/lib/cairomm-1.0/include/" #Another fix for FreeBSD
+	)
+
+	install (TARGETS HAPviewer DESTINATION bin)
+endif()
+
+#Allows to enable the integrated tests
+option (HAPVIEWER_ENABLE_TESTING "Enable the integrated tests" ON)
+if (HAPVIEWER_ENABLE_TESTING)
+	if(HAPVIEWER_LIBRARY)
+        	add_subdirectory(tests)
+	else()
+		message("You have build the library if you want to use the integrated tests.")
+	endif()
+endif()

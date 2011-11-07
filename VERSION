@@ -1,0 +1,12 @@
+Version history:
+
+0.1: Display a graph described by a file in graphviz dot language.
+0.2: Read a hpg file and display metadata as a table
+0.3: Display a graphlet selected in metadata list
+0.4: Use a separate thread for meta data calculation
+0.5: Uses (partly) Gio file functions instead of unix file functions
+0.6: Renamed to HAPviewer
+1.0: Extended version described in VizSec paper.
+1.1: Import of nfdump and ipfix file data added
+2.0: Clickable graph, IPv6 support, CMake buildsystem, better roleconflict
+     resolving
